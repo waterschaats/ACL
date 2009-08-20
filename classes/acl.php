@@ -244,7 +244,11 @@ class Acl {
 			// try parents of role (starting at last added parent role)
 			if($role !== NULL AND !empty($this->_roles[$role]['parents']))
 			{
-				return $this->_find_match_role($resource,array_reverse($this->_roles[$role]['parents']),$privilege);
+				// let's see if any of the parent roles for this role return a valid rule
+				if(($rule = $this->_find_match_role($resource,array_reverse($this->_roles[$role]['parents']),$privilege)) !== FALSE)
+				{
+					return $rule;
+				}
 			}
 		}
 		return FALSE;
