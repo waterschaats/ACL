@@ -14,21 +14,23 @@
  
 class Acl_Assert_Argument implements Acl_Assert_Interface {
 	
-	protected $arguments;
+	protected $_arguments;
 
 	public function __construct($arguments)
 	{
-		$this->arguments = $arguments;
+		$this->_arguments = $arguments;
 	}
 	
 	public function assert(Acl $acl, $role = null, $resource = null, $privilege = null)
-  {
-		foreach($this->arguments as $role_key => $resource_key)
+	{
+		foreach($this->_arguments as $role_key => $resource_key)
 		{
 			if($role->$role_key !== $resource->$resource_key)
+			{
 				return FALSE;
+			}
 		}
 		
 		return TRUE;
-  }
+	}
 }

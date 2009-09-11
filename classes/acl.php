@@ -40,71 +40,71 @@ class Acl {
 	protected $_roles = array();
 	protected $_resources = array();
 
-  protected $_rules = array();
+	protected $_rules = array();
 	/* the $_rules array is structured in a way like this:
-			array(
-				'allResources' => array(
-					'allRoles' => array(
-		            'allPrivileges' => array(
-		                'allow'  => FALSE,
-		                'assert' => null
-		                ),
-		            'byPrivilegeId' => array()
-		            ),
-			      'byRoleId' => array()
-			      ),
-		    'byResourceId' => array()
-		   );
+	array(
+		'allResources' => array(
+			'allRoles' => array(
+				'allPrivileges' => array(
+					'allow'  => FALSE,
+					'assert' => null
+				),
+				'byPrivilegeId' => array()
+			),
+			'byRoleId' => array()
+		),
+		'byResourceId' => array()
+	);
   */
 
 	// add role
 	public function add_role($role,$parents = NULL)
 	{
-		if($parents !== NULL AND ! is_array($parents))
+		if ( $parents !== NULL && ! is_array($parents))
 		{
 			$parents = array($parents);
 		}
-		
+
 		$this->_roles[$role] = array(
-			'children'	=> array(),
-			'parents'		=> $parents
+			'children' => array(),
+			'parents'  => $parents
 		);
-		
-		if(!empty($parents))
+
+		if ( ! empty($parents))
 		{
-			foreach($parents as $parent)
+			foreach ( $parents as $parent)
 			{
 				$this->_roles[$parent]['children'][] = $role;
 			}
 		}
 	}
-	
+
 	// check if role exists in ACL
 	public function has_role($role)
 	{
-		return $role !== NULL AND isset($this->_roles[$role]);
+		return $role !== NULL && isset($this->_roles[$role]);
 	}
-	
+
 	// add resource
 	public function add_resource($resource,$parent = NULL)
 	{
 		$this->_resources[$resource] = array(
-			'children'	=> array(),
-			'parent'		=> $parent
+			'children' => array(),
+			'parent'   => $parent
 		);
-		
-		if($parent !== NULL)
+
+		if ( $parent !== NULL)
 		{
 			$this->_resources[$parent]['children'][] = $resource;
 		}
 	}
-	
+
 	// check if resource exists in ACL
 	public function has_resource($resource)
 	{
-		return $resource !== NULL AND isset($this->_resources[$resource]);
+		return $resource !== NULL && isset($this->_resources[$resource]);
 	}
-	
+
 	// add an allow rule
 	public function allow($roles = NULL, $resources = NULL, $privileges = NULL, Acl_Assert_Interface $assertion = NULL)
 	{
@@ -116,27 +116,28 @@ class Acl {
 	{
 		$this->add_rule(FALSE,$roles,$resources,$privileges,$assertion);
 	}
-	
+
 	// internal add rule method
 	private function add_rule($allow,$roles,$resources,$privileges,$assertion)
 	{
 		// Normalize arguments (build arrays with IDs as string)
-		
-			//privileges
-		if($privileges !== NULL AND !is_array($privileges)) 
+
+		//privileges
+		if ( $privileges !== NULL && !is_array($privileges)) 
 		{
 			$privileges = array($privileges);
 		}
-			//resources
-		if($resources !== NULL)
+
+		//resources
+		if ( $resources !== NULL)
 		{
-			if(!is_array($resources)) 
+			if ( ! is_array($resources)) 
 			{
 				$resources = array($resources);
 			}
-			foreach($resources as &$resource)
+			foreach ( $resources as &$resource)
 			{
-				if($resource instanceof Acl_Resource_Interface)
+				if ( $resource instanceof Acl_Resource_Interface)
 				{
 					$resource = $resource->get_resource_id();
 				}
@@ -146,16 +147,18 @@ class Acl {
 				}
 			}
 		}
-			//roles
-		if($roles !== NULL)
+
+		//roles
+		if ( $roles !== NULL)
 		{
-			if(!is_array($roles)) 
+			if ( ! is_array($roles)) 
 			{
 				$roles = array($roles);
 			}
-			foreach($roles as &$role)
+
+			foreach ( $roles as &$role)
 			{
-				if($role instanceof Acl_Role_Interface)
+				if ( $role instanceof Acl_Role_Interface)
 				{
 					$role = $role->get_role_id();
 				}
@@ -171,50 +174,65 @@ class Acl {
 			'allow'	 => $allow,
 			'assert' => $assertion
 		);
-		
-		$rule = $privileges === NULL ? array('allPrivileges' => $rule) : array('byPrivilegeId'=> array_fill_keys($privileges,$rule) );
-		
-		$rule = $roles === NULL ? array('allRoles' => $rule) : array('byRoleId' => array_fill_keys($roles,$rule) );
-		
-		$rule = $resources === NULL ? array('allResources' => $rule) : array('byResourceId' => array_fill_keys($resources,$rule) );
-		
+
+		$rule = $privileges === NULL 
+			? array('allPrivileges' => $rule) 
+			: array('byPrivilegeId'=> array_fill_keys($privileges,$rule));
+
+		$rule = $roles === NULL 
+			? array('allRoles' => $rule) 
+			: array('byRoleId' => array_fill_keys($roles,$rule));
+
+		$rule = $resources === NULL 
+			? array('allResources' => $rule) 
+			: array('byResourceId' => array_fill_keys($resources,$rule));
+
 		// using arr::merge, this appends numeric keys, but replaces associative keys
 		$this->_rules = arr::merge($this->_rules,$rule);
 	}
-	
+
 	public function is_allowed($role = NULL, $resource = NULL, $privilege = NULL)
 	{
 		// save command data (in case of assertion, then the original objects are used)
 		$this->command = array
 		(
-			'role' => $role,
-			'resource' => $resource,
-			'privilege'=> $privilege
+			'role'      => $role,
+			'resource'  => $resource,
+			'privilege' => $privilege
 		);
 
 		// normalize role
-		$roles = $role !== NULL ? ($role instanceof Acl_Role_Interface ? $role->get_role_id() : (is_array($role) ? $role : (string) $role)) : NULL;
+		$roles = $role !== NULL 
+			? ($role instanceof Acl_Role_Interface ? $role->get_role_id() 
+			: (is_array($role) ? $role : (string) $role)) : NULL;
 
 		// make array (we support checking multiple roles at once, the first matching rule for any of the roles will be returned)
-		if( ! is_array($roles) ) $roles = array($roles);
+		if( ! is_array($roles))
+		{
+			$roles = array($roles);
+		}
 
 		// normalize resource to a string value (or NULL)
-		$resource = $resource !== NULL ? ($resource instanceof Acl_Resource_Interface ? $resource->get_resource_id() : (string) $resource) : NULL;
+		$resource = $resource !== NULL 
+			? ($resource instanceof Acl_Resource_Interface ? $resource->get_resource_id() 
+			: (string) $resource) : NULL;
 
 		// resource unknown
-		if( $resource !== NULL && !$this->has_resource($resource) )
+		if( $resource !== NULL && !$this->has_resource($resource))
+		{
 			return FALSE;
+		}
 
 		// loop for matching rule
 		do
 		{
-			if( ($rule = $this->_find_match_role($resource,$roles,$privilege) ) )
+			if ( $rule = $this->_find_match_role($resource,$roles,$privilege))
 			{
 				return $rule['allow'];
 			}
 		}
 		// go level up in resources tree (child resources inherit rules from parent)
-		while($resource !== NULL AND ($resource = $this->_resources[$resource]['parent']) );
+		while ( $resource !== NULL AND ($resource = $this->_resources[$resource]['parent']));
 
 		return FALSE;
 	}
@@ -229,28 +247,31 @@ class Acl {
 	 */
 	private function _find_match_role($resource,$roles,$privilege)
 	{
-		foreach($roles as $role)
+		foreach ( $roles as $role)
 		{
 			// role unknown - skip
-			if( $role !== NULL && !$this->has_role($role) )
+			if( $role !== NULL && !$this->has_role($role))
+			{
 				continue;
+			}
 
 			// find match for this role
-			if( ($rule = $this->_find_match($this->_rules,$resource,$role,$privilege) ) )
+			if ( $rule = $this->_find_match($this->_rules,$resource,$role,$privilege))
 			{
 				return $rule;
 			}
 			
 			// try parents of role (starting at last added parent role)
-			if($role !== NULL AND !empty($this->_roles[$role]['parents']))
+			if ( $role !== NULL && !empty($this->_roles[$role]['parents']))
 			{
 				// let's see if any of the parent roles for this role return a valid rule
-				if(($rule = $this->_find_match_role($resource,array_reverse($this->_roles[$role]['parents']),$privilege)) !== FALSE)
+				if ( $rule = $this->_find_match_role($resource,array_reverse($this->_roles[$role]['parents']),$privilege))
 				{
 					return $rule;
 				}
 			}
 		}
+
 		return FALSE;
 	}
 	
@@ -265,16 +286,16 @@ class Acl {
 	 */
 	private function _find_match(& $attach,$resource,$role,$privilege)
 	{
-		//echo '<B>_find_match</b>: resource: ',$resource,', role: ',$role,', privilege: ',$privilege,'<br>';
-		
+		//echo Kohana::debug($resource,$role,$privilege);
+
 		// resource level
 		if($resource !== FALSE)
 		{
-			if( isset($attach['byResourceId'][$resource]) AND ($rule = $this->_find_match($attach['byResourceId'][$resource],FALSE,$role,$privilege) ) )
+			if ( isset($attach['byResourceId'][$resource]) && ($rule = $this->_find_match($attach['byResourceId'][$resource],FALSE,$role,$privilege)))
 			{
 				return $rule;
 			}
-			elseif(isset($attach['allResources']))
+			elseif ( isset($attach['allResources']))
 			{
 				$attach =& $attach['allResources'];
 			}
@@ -283,15 +304,15 @@ class Acl {
 				return FALSE;
 			}
 		}
-		
+
 		// role level
-		if($role !== FALSE)
+		if ( $role !== FALSE)
 		{
-			if( isset($attach['byRoleId'][$role]) AND ($rule = $this->_find_match($attach['byRoleId'][$role],FALSE,FALSE,$privilege) ) )
-			{	
+			if ( isset($attach['byRoleId'][$role]) && ($rule = $this->_find_match($attach['byRoleId'][$role],FALSE,FALSE,$privilege)))
+			{
 				return $rule;
 			}
-			elseif(isset($attach['allRoles']))
+			elseif ( isset($attach['allRoles']))
 			{
 				$attach =& $attach['allRoles'];
 			}
@@ -300,26 +321,26 @@ class Acl {
 				return FALSE;
 			}
 		}
-		
-		if($privilege === NULL)
+
+		if ( $privilege === NULL)
 		{
 			$specificDeny = FALSE;
-			
-			if( isset($attach['byPrivilegeId']) )
+
+			if ( isset($attach['byPrivilegeId']))
 			{
-				foreach($attach['byPrivilegeId'] as $rule)
+				foreach ( $attach['byPrivilegeId'] as $rule)
 				{
-					if($this->_rule_runnable($rule,FALSE))
+					if ( $this->_rule_runnable($rule,FALSE))
 					{
 						$specificDeny = $rule;
 						break;
 					}
 				}
 			}
-			
-			if( !empty($attach['allPrivileges']) AND $this->_rule_runnable($attach['allPrivileges']) )
+
+			if ( ! empty($attach['allPrivileges']) && $this->_rule_runnable($attach['allPrivileges']))
 			{
-				if($attach['allPrivileges']['allow'] AND $specificDeny !== FALSE)
+				if ( $attach['allPrivileges']['allow'] && $specificDeny !== FALSE)
 				{
 					return $specificDeny;
 				}
@@ -331,22 +352,13 @@ class Acl {
 			else
 			{
 				return $specificDeny;
-				
-				/*if($specificDeny !== FALSE)
-				{
-					return $specificDeny;
-				}
-				else
-				{
-					return FALSE;
-				}*/
 			}
 		}
 		else
 		{
-			if( empty($attach['byPrivilegeId']) OR ! isset ($attach['byPrivilegeId'][$privilege]) )
+			if ( empty($attach['byPrivilegeId']) || ! isset ($attach['byPrivilegeId'][$privilege]))
 			{
-				if( !empty($attach['allPrivileges']) AND $this->_rule_runnable($attach['allPrivileges']) )
+				if ( !empty($attach['allPrivileges']) && $this->_rule_runnable($attach['allPrivileges']))
 				{
 					return $attach['allPrivileges'];
 				}
@@ -355,7 +367,7 @@ class Acl {
 					return FALSE;
 				}
 			}
-			elseif( isset($attach['byPrivilegeId'][$privilege]) AND $this->_rule_runnable($attach['byPrivilegeId'][$privilege]) )
+			elseif ( isset($attach['byPrivilegeId'][$privilege]) && $this->_rule_runnable($attach['byPrivilegeId'][$privilege]))
 			{
 				return $attach['byPrivilegeId'][$privilege];
 			}
@@ -369,7 +381,7 @@ class Acl {
 		return FALSE;
 
 	}
-	
+
 	/*
 	 * Verifies if rule can be applied to specified arguments
 	 *
@@ -379,22 +391,24 @@ class Acl {
 	 */
 	private function _rule_runnable($rule,$allow = NULL)	
 	{
-		if($allow !== NULL)
+		if ( $allow !== NULL)
 		{
-			if($rule['allow'] !== $allow)
+			if ( $rule['allow'] !== $allow)
+			{
 				return FALSE;
+			}
 		}
-		
-		if(isset($rule['assert']))
+
+		if ( isset($rule['assert']))
 		{
 			return $rule['assert']->assert($this,$this->command['role'],$this->command['resource'],$this->command['privilege']);
 		}
-		
+
 		return TRUE;
 	}
-	
+
 	public function __sleep()
 	{
 		return array('_roles','_resources','_rules'); // no need to save the current command ($this->command)
 	}
-}	
+}
