@@ -213,9 +213,9 @@ class Acl {
 		}
 
 		// normalize resource to a string value (or NULL)
-		$resource = $resource !== NULL 
-			? ($resource instanceof Acl_Resource_Interface ? $resource->get_resource_id() 
-			: (string) $resource) : NULL;
+		$resource = $resource !== NULL
+			? ($resource instanceof Acl_Resource_Interface ? $resource->get_resource_id() : (string) $resource)
+			: NULL;
 
 		// resource unknown
 		if( $resource !== NULL && !$this->has_resource($resource))
