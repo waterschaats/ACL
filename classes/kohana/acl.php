@@ -324,53 +324,47 @@ class Kohana_Acl {
 
 		if ( $privilege === NULL)
 		{
-			$specificDeny = FALSE;
+			// No privilege specified = check for all privileges
 
 			if ( isset($attach['byPrivilegeId']))
 			{
 				foreach ( $attach['byPrivilegeId'] as $rule)
 				{
+					// If one specific privilege is denied, then not all privileges are allowed
 					if ( $this->_rule_runnable($rule,FALSE))
 					{
-						$specificDeny = $rule;
-						break;
+						return $rule;
 					}
 				}
 			}
 
+			// No specific privileges are denied, check all privileges rule
 			if ( ! empty($attach['allPrivileges']) && $this->_rule_runnable($attach['allPrivileges']))
 			{
-				if ( $attach['allPrivileges']['allow'] && $specificDeny !== FALSE)
-				{
-					return $specificDeny;
-				}
-				else
-				{
-					return $attach['allPrivileges'];
-				}
+				return $attach['allPrivileges'];
 			}
+
+			// No rule found
 			else
 			{
-				return $specificDeny;
+				return FALSE;
 			}
 		}
 		else
 		{
-			if ( empty($attach['byPrivilegeId']) || ! isset ($attach['byPrivilegeId'][$privilege]))
-			{
-				if ( !empty($attach['allPrivileges']) && $this->_rule_runnable($attach['allPrivileges']))
-				{
-					return $attach['allPrivileges'];
-				}
-				else
-				{
-					return FALSE;
-				}
-			}
-			elseif ( isset($attach['byPrivilegeId'][$privilege]) && $this->_rule_runnable($attach['byPrivilegeId'][$privilege]))
+			// Privilege defined - check if privilege specific rule is set and runnable
+			if ( isset($attach['byPrivilegeId'][$privilege]) && $this->_rule_runnable($attach['byPrivilegeId'][$privilege]))
 			{
 				return $attach['byPrivilegeId'][$privilege];
 			}
+
+			// No specific rule for privilege, fallback to allPrivileges rule
+			elseif ( ! empty($attach['allPrivileges']) && $this->_rule_runnable($attach['allPrivileges']))
+			{
+				return $attach['allPrivileges'];
+			}
+
+			// No rule found
 			else
 			{
 				return FALSE;
