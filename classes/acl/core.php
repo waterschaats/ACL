@@ -33,7 +33,7 @@
  * @version    $Id: Acl.php 9417 2008-05-08 16:28:31Z darby $
  */
 
-class Kohana_Acl {
+abstract class Acl_Core {
 	
 	protected $command = array();
 
